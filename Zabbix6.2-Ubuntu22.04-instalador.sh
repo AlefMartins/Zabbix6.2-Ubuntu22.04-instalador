@@ -68,7 +68,7 @@ systemctl enable \
 zabbix-server.service \
 zabbix-agent2.service \
 nginx.service \
-php7.4-fpm.service 1>>${log} 2>&1
+php8.1-fpm.service 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] Configuracao do MySQL\n" 2>&1 | tee --append ${log}
 mkdir -p /var/lib/zabbix && chown zabbix:zabbix /var/lib/zabbix 1>>${log} 2>&1
@@ -166,7 +166,7 @@ cp -p /etc/zabbix/php-fpm.conf /etc/zabbix/php-fpm.conf_${backup_data}
 sed -i -e 's/; php_value\[date\.timezone\] = Europe\/Riga/php_value\[date\.timezone\] = America\/Sao_Paulo/' \
 /etc/zabbix/php-fpm.conf
 cat /etc/zabbix/php-fpm.conf| egrep date.timezone 1>>${log} 2>&1
-systemctl restart nginx.service php7.4-fpm.service 1>>${log} 2>&1
+systemctl restart nginx.service php8.1-fpm.service 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] FIREWALL: Criando regras locais\n" 2>&1 | tee --append ${log}
 cp -p /etc/iptables/rules.v4 /etc/iptables/rules.v4_${backup_data}
