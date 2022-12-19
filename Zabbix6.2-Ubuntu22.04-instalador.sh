@@ -39,12 +39,12 @@ mysql_zabbix_passwd=$2
 mysql_zbx_monitor_passwd=$2
 log="/tmp/zabbix_install_${backup_data}.log"
 
-if [ `echo ${mysql_zabbix_passwd}|wc -c` -le 10 -o `echo ${mysql_zbx_monitor_passwd}|wc -c` -le 10 ]; then
-    printf "[${RED}ERRO${RESET}] Falha ao criar as senhas randomicas.\n" 2>&1 | tee --append ${log}
-    echo "  mysql_zabbix_passwd=${mysql_zabbix_passwd}" 2>&1 | tee --append ${log}
-    echo "  mysql_zbx_monitor_passwd=${mysql_zbx_monitor_passwd}" 2>&1 | tee --append ${log}
-    exit 1
-fi
+#if [ `echo ${mysql_zabbix_passwd}|wc -c` -le 10 -o `echo ${mysql_zbx_monitor_passwd}|wc -c` -le 10 ]; then
+#    printf "[${RED}ERRO${RESET}] Falha ao criar as senhas randomicas.\n" 2>&1 | tee --append ${log}
+#    echo "  mysql_zabbix_passwd=${mysql_zabbix_passwd}" 2>&1 | tee --append ${log}
+#    echo "  mysql_zbx_monitor_passwd=${mysql_zbx_monitor_passwd}" 2>&1 | tee --append ${log}
+#    exit 1
+#fi
 
 printf "[ ${GREEN}OK${RESET} ] Parametros de configuracao\n" 2>&1 | tee --append ${log}
 
