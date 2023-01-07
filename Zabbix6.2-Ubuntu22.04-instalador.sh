@@ -73,17 +73,14 @@ php8.1-fpm.service 1>>${log} 2>&1
 printf "[${GREEN}INFO${RESET}] Configuracao do MySQL\n" 2>&1 | tee --append ${log}
 mkdir -p /var/lib/zabbix && chown zabbix:zabbix /var/lib/zabbix 1>>${log} 2>&1
 printf "[client]\nuser=zbx_monitor\npassword='${mysql_zbx_monitor_passwd}'\nhost=${mysql_server_address}\n" >/var/lib/zabbix/.my.cnf
-printf "[client]\nuser=root\npassword='${mysql_root_passwd}'\nhost=${mysql_server_address}\n" >/root/.my.cnf
+#printf "[client]\nuser=root\npassword='${mysql_root_passwd}'\nhost=${mysql_server_address}\n" >/root/.my.cnf
 
 printf "[${GREEN}INFO${RESET}] Criando banco de dados e usuarios\n" 2>&1 | tee --append ${log}
 echo "CREATE DATABASE zabbix CHARACTER SET utf8 COLLATE utf8_bin;" >/tmp/zabbix_mysql.sql
 echo "CREATE USER 'zabbix'@'%' IDENTIFIED WITH mysql_native_password BY '${mysql_zabbix_passwd}';" >>/tmp/zabbix_mysql.sql
 echo "CREATE USER 'zbx_monitor'@'%' IDENTIFIED WITH mysql_native_password BY '${mysql_zbx_monitor_passwd}';" >>/tmp/zabbix_mysql.sql
-echo "CREATE USER 'zabbix'@'localhost' IDENTIFIED WITH mysql_native_password BY '${mysql_zabbix_passwd}';" >>/tmp/zabbix_mysql.sql
-echo "CREATE USER 'zbx_monitor'@'localhost' IDENTIFIED WITH mysql_native_password BY '${mysql_zbx_monitor_passwd}';" >>/tmp/zabbix_mysql.sql
 echo "GRANT USAGE,REPLICATION CLIENT,PROCESS,SHOW DATABASES,SHOW VIEW ON *.* TO 'zbx_monitor'@'%';" >>/tmp/zabbix_mysql.sql
 echo "GRANT ALL PRIVILEGES ON zabbix.* TO 'zabbix'@'%';" >>/tmp/zabbix_mysql.sql
-echo "GRANT ALL PRIVILEGES ON zabbix.* TO 'zabbix'@'localhost';" >>/tmp/zabbix_mysql.sql
 mysql --host=${mysql_server_address} --user=root --execute 'source /tmp/zabbix_mysql.sql;' 1>>${log} 2>&1
 rm -f /tmp/zabbix_mysql.sql
 
