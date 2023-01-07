@@ -39,19 +39,19 @@ mysql_zabbix_passwd=$2
 mysql_zbx_monitor_passwd=$2
 log="/tmp/zabbix_install_${backup_data}.log"
 
-if [ `echo ${mysql_zabbix_passwd}|wc -c` -le 10 -o `echo ${mysql_zbx_monitor_passwd}|wc -c` -le 10 ]; then
-    printf "[${RED}ERRO${RESET}] Falha ao criar as senhas randomicas.\n" 2>&1 | tee --append ${log}
-    echo "  mysql_zabbix_passwd=${mysql_zabbix_passwd}" 2>&1 | tee --append ${log}
-    echo "  mysql_zbx_monitor_passwd=${mysql_zbx_monitor_passwd}" 2>&1 | tee --append ${log}
-    exit 1
-fi
+#if [ `echo ${mysql_zabbix_passwd}|wc -c` -le 10 -o `echo ${mysql_zbx_monitor_passwd}|wc -c` -le 10 ]; then
+#    printf "[${RED}ERRO${RESET}] Falha ao criar as senhas randomicas.\n" 2>&1 | tee --append ${log}
+#    echo "  mysql_zabbix_passwd=${mysql_zabbix_passwd}" 2>&1 | tee --append ${log}
+#    echo "  mysql_zbx_monitor_passwd=${mysql_zbx_monitor_passwd}" 2>&1 | tee --append ${log}
+#    exit 1
+#fi
 
 printf "[ ${GREEN}OK${RESET} ] Parametros de configuracao\n" 2>&1 | tee --append ${log}
 
 printf "[${GREEN}INFO${RESET}] Download e configuracao do reposito do Zabbix\n" 2>&1 | tee --append ${log}
 wget https://repo.zabbix.com/zabbix/6.2/ubuntu-arm64/pool/main/z/zabbix-release/zabbix-release_6.2-4%2Bubuntu22.04_all.deb -O /tmp/zabbix-release.deb 1>>${log} 2>&1
 dpkg -i /tmp/zabbix-release.deb 1>>${log} 2>&1
-rm -f /tmp/zabbix-release.deb 1>>${log} 2>&1
+#rm -f /tmp/zabbix-release.deb 1>>${log} 2>&1
 apt-get update 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] Instalando o Zabbix server, agent2 e frontend\n" 2>&1 | tee --append ${log}
@@ -60,27 +60,28 @@ zabbix-server-mysql \
 zabbix-frontend-php \
 zabbix-nginx-conf \
 zabbix-sql-scripts \
-zabbix-agent2 \
+zabbix-agent \
 zabbix-get 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] Configurando a inicializacao dos servicos no linux\n" 2>&1 | tee --append ${log}
 systemctl enable \
 zabbix-server.service \
-zabbix-agent2.service \
+zabbix-agent.service \
 nginx.service \
 php8.1-fpm.service 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] Configuracao do MySQL\n" 2>&1 | tee --append ${log}
 mkdir -p /var/lib/zabbix && chown zabbix:zabbix /var/lib/zabbix 1>>${log} 2>&1
 printf "[client]\nuser=zbx_monitor\npassword='${mysql_zbx_monitor_passwd}'\nhost=${mysql_server_address}\n" >/var/lib/zabbix/.my.cnf
-printf "[client]\nuser=root\npassword='${mysql_root_passwd}'\nhost=${mysql_server_address}\n" >/root/.my.cnf
+#printf "[client]\nuser=root\npassword='${mysql_root_passwd}'\nhost=${mysql_server_address}\n" >/root/.my.cnf
 
 printf "[${GREEN}INFO${RESET}] Criando banco de dados e usuarios\n" 2>&1 | tee --append ${log}
-echo "CREATE DATABASE zabbix CHARACTER SET utf8 COLLATE utf8_bin;" >/tmp/zabbix_mysql.sql
-echo "CREATE USER 'zabbix'@'%' IDENTIFIED WITH mysql_native_password BY '${mysql_zabbix_passwd}';" >>/tmp/zabbix_mysql.sql
-echo "CREATE USER 'zbx_monitor'@'%' IDENTIFIED WITH mysql_native_password BY '${mysql_zbx_monitor_passwd}';" >>/tmp/zabbix_mysql.sql
-echo "GRANT USAGE,REPLICATION CLIENT,PROCESS,SHOW DATABASES,SHOW VIEW ON *.* TO 'zbx_monitor'@'%';" >>/tmp/zabbix_mysql.sql
-echo "GRANT ALL PRIVILEGES ON zabbix.* TO 'zabbix'@'%';" >>/tmp/zabbix_mysql.sql
+echo "create database zabbix character set utf8mb4 collate utf8mb4_bin;" >/tmp/zabbix_mysql.sql
+echo "CREATE USER zabbix@localhost IDENTIFIED WITH mysql_native_password BY '${mysql_zabbix_passwd}';" >>/tmp/zabbix_mysql.sql
+#echo "CREATE USER 'zbx_monitor'@'%' IDENTIFIED WITH mysql_native_password BY '${mysql_zbx_monitor_passwd}';" >>/tmp/zabbix_mysql.sql
+#echo "GRANT USAGE,REPLICATION CLIENT,PROCESS,SHOW DATABASES,SHOW VIEW ON *.* TO 'zbx_monitor'@'%';" >>/tmp/zabbix_mysql.sql
+echo "grant all privileges on zabbix.* to zabbix@localhost;" >>/tmp/zabbix_mysql.sql
+
 mysql --host=${mysql_server_address} --user=root --execute 'source /tmp/zabbix_mysql.sql;' 1>>${log} 2>&1
 rm -f /tmp/zabbix_mysql.sql
 
@@ -95,8 +96,9 @@ sed -i -e "s/# DBPassword=$/DBPassword=${mysql_zabbix_passwd}/" \
 cat /etc/zabbix/zabbix_server.conf|egrep '^(DBPassword|DBHost)=' 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] Reiniciando o Zabbix server\n" 2>&1 | tee --append ${log}
-systemctl restart zabbix-server.service
-systemctl status zabbix-server.service 1>>${log} 2>&1
+systemctl restart zabbix-server zabbix-agent nginx php8.1-fpm
+systemctl enable zabbix-server zabbix-agent nginx php8.1-fpm
+systemctl status zabbix-server 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] NGINX: Criando certificado ssl\n" 2>&1 | tee --append ${log}
 [ -e /usr/local/nginx/ssl ] || mkdir -p /usr/local/nginx/ssl
@@ -160,7 +162,7 @@ cat /etc/nginx/nginx.conf 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] PHP-FPM: Configuracao\n" 2>&1 | tee --append ${log}
 cp -p /etc/zabbix/php-fpm.conf /etc/zabbix/php-fpm.conf_${backup_data}
-sed -i -e 's/; php_value\[date\.timezone\] = Europe\/Riga/php_value\[date\.timezone\] = America\/Sao_Paulo/' \
+sed -i -e 's/; php_value\[date\.timezone\] = Europe\/Riga/php_value\[date\.timezone\] = America\/Maceio/' \
 /etc/zabbix/php-fpm.conf
 cat /etc/zabbix/php-fpm.conf| egrep date.timezone 1>>${log} 2>&1
 systemctl restart nginx.service php8.1-fpm.service 1>>${log} 2>&1
