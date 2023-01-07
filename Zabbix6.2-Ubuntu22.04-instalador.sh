@@ -35,8 +35,8 @@ fi
 mysql_root_passwd=$2
 mysql_server_address=$1
 backup_data=$(date +%Y_%m_%d-%H_%M_%S)
-mysql_zabbix_passwd=$2
-mysql_zbx_monitor_passwd=$2
+mysql_zabbix_passwd=$2 #(< /dev/urandom tr -dc A-Za-z0-9 | head -c${32:-32};echo \#1604;)
+mysql_zbx_monitor_passwd=$2 #(< /dev/urandom tr -dc A-Za-z0-9 | head -c${32:-32};echo \#1604;)
 log="/tmp/zabbix_install_${backup_data}.log"
 
 #if [ `echo ${mysql_zabbix_passwd}|wc -c` -le 10 -o `echo ${mysql_zbx_monitor_passwd}|wc -c` -le 10 ]; then
@@ -49,7 +49,7 @@ log="/tmp/zabbix_install_${backup_data}.log"
 printf "[ ${GREEN}OK${RESET} ] Parametros de configuracao\n" 2>&1 | tee --append ${log}
 
 printf "[${GREEN}INFO${RESET}] Download e configuracao do reposito do Zabbix\n" 2>&1 | tee --append ${log}
-wget https://repo.zabbix.com/zabbix/6.2/ubuntu-arm64/pool/main/z/zabbix-release/zabbix-release_6.2-4%2Bubuntu22.04_all.deb -O /tmp/zabbix-release.deb 1>>${log} 2>&1
+wget https://repo.zabbix.com/zabbix/5.4/ubuntu-arm64/pool/main/z/zabbix-release/zabbix-release_5.4-1+ubuntu20.04_all.deb -O /tmp/zabbix-release.deb 1>>${log} 2>&1
 dpkg -i /tmp/zabbix-release.deb 1>>${log} 2>&1
 rm -f /tmp/zabbix-release.deb 1>>${log} 2>&1
 apt-get update 1>>${log} 2>&1
@@ -68,7 +68,7 @@ systemctl enable \
 zabbix-server.service \
 zabbix-agent2.service \
 nginx.service \
-php8.1-fpm.service 1>>${log} 2>&1
+php7.4-fpm.service 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] Configuracao do MySQL\n" 2>&1 | tee --append ${log}
 mkdir -p /var/lib/zabbix && chown zabbix:zabbix /var/lib/zabbix 1>>${log} 2>&1
@@ -163,7 +163,7 @@ cp -p /etc/zabbix/php-fpm.conf /etc/zabbix/php-fpm.conf_${backup_data}
 sed -i -e 's/; php_value\[date\.timezone\] = Europe\/Riga/php_value\[date\.timezone\] = America\/Sao_Paulo/' \
 /etc/zabbix/php-fpm.conf
 cat /etc/zabbix/php-fpm.conf| egrep date.timezone 1>>${log} 2>&1
-systemctl restart nginx.service php8.1-fpm.service 1>>${log} 2>&1
+systemctl restart nginx.service php7.4-fpm.service 1>>${log} 2>&1
 
 printf "[${GREEN}INFO${RESET}] FIREWALL: Criando regras locais\n" 2>&1 | tee --append ${log}
 cp -p /etc/iptables/rules.v4 /etc/iptables/rules.v4_${backup_data}
@@ -177,14 +177,17 @@ printf "[${GREEN}INFO${RESET}] ZABBIX: Configuracao do frontend\n" 2>&1 | tee --
 cat > /etc/zabbix/web/zabbix.conf.php << EOF
 <?php
 // Zabbix GUI configuration file.
+
 \$DB['TYPE'] = 'MYSQL';
 \$DB['SERVER'] = '${mysql_server_address}';
 \$DB['PORT'] = '0';
 \$DB['DATABASE'] = 'zabbix';
 \$DB['USER'] = 'zabbix';
 \$DB['PASSWORD'] = '${mysql_zabbix_passwd}';
+
 // Schema name. Used for PostgreSQL.
 \$DB['SCHEMA'] = '';
+
 // Used for TLS connection.
 \$DB['ENCRYPTION'] = false;
 \$DB['KEY_FILE'] = '';
@@ -192,22 +195,27 @@ cat > /etc/zabbix/web/zabbix.conf.php << EOF
 \$DB['CA_FILE'] = '';
 \$DB['VERIFY_HOST'] = false;
 \$DB['CIPHER_LIST'] = '';
+
 // Use IEEE754 compatible value range for 64-bit Numeric (float) history values.
 // This option is enabled by default for new Zabbix installations.
 // For upgraded installations, please read database upgrade notes before enabling this option.
 \$DB['DOUBLE_IEEE754'] = true;
+
 \$ZBX_SERVER = 'zabbix-server';
 \$ZBX_SERVER_PORT = '10051';
 \$ZBX_SERVER_NAME = '';
+
 \$IMAGE_FORMAT_DEFAULT = IMAGE_FORMAT_PNG;
+
 // Uncomment this block only if you are using Elasticsearch.
 // Elasticsearch url (can be string if same url is used for all types).
 //$HISTORY['url'] = [
-//	'uint' => 'http://localhost:9200',
-//	'text' => 'http://localhost:9200'
+//  'uint' => 'http://localhost:9200',
+//  'text' => 'http://localhost:9200'
 //];
 // Value types stored in Elasticsearch.
 //$HISTORY['types'] = ['uint', 'text'];
+
 // Used for SAML authentication.
 // Uncomment to override the default paths to SP private key, SP and IdP X.509 certificates, and to set extra settings.
 //\$SSO['SP_KEY'] = 'conf/certs/sp.key';
