@@ -49,7 +49,7 @@ log="/tmp/zabbix_install_${backup_data}.log"
 printf "[ ${GREEN}OK${RESET} ] Parametros de configuracao\n" 2>&1 | tee --append ${log}
 
 printf "[${GREEN}INFO${RESET}] Download e configuracao do reposito do Zabbix\n" 2>&1 | tee --append ${log}
-wget https://repo.zabbix.com/zabbix/6.2/ubuntu-arm64/pool/main/z/zabbix-release/zabbix-release_6.2-4%2Bubuntu22.04_all.deb -O /tmp/zabbix-release.deb 1>>${log} 2>&1
+wget https://repo.zabbix.com/zabbix/7.0/ubuntu-arm64/pool/main/z/zabbix-release/zabbix-release_7.0-2+ubuntu22.04_all.deb -O /tmp/zabbix-release.deb 1>>${log} 2>&1
 dpkg -i /tmp/zabbix-release.deb 1>>${log} 2>&1
 #rm -f /tmp/zabbix-release.deb 1>>${log} 2>&1
 apt-get update 1>>${log} 2>&1
